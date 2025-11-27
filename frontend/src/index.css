@@ -1,0 +1,350 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Swirly Palette: Cyan, Black, White */
+  --bg-dark: #000000;
+  
+  --glass-panel: rgba(20, 20, 20, 0.3); /* More transparent */
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-highlight: rgba(255, 255, 255, 0.2);
+  --glass-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  --blur-amount: blur(60px) saturate(180%);
+
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.4);
+
+  --accent: #00FFFF; /* Cyan */
+  --accent-glow: 0 0 30px rgba(0, 255, 255, 0.5);
+  --danger: #ff453a;
+  --success: #30d158;
+  --warning: #ffd60a;
+
+  --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
+  --radius-pill: 999px;
+}
+
+[data-theme="light"] {
+  --bg-dark: #ffffff;
+  --glass-panel: rgba(255, 255, 255, 0.4);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-highlight: rgba(0, 0, 0, 0.05);
+  --glass-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  
+  --text-primary: #000000;
+  --text-secondary: rgba(0, 0, 0, 0.6);
+  --text-muted: rgba(0, 0, 0, 0.4);
+  --accent: #0088cc; /* Darker Cyan for light mode */
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-main);
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Swirly Background Animation */
+body::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: 
+    radial-gradient(circle at 50% 50%, rgba(0, 255, 255, 0.15), transparent 60%),
+    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1), transparent 50%),
+    radial-gradient(circle at 20% 80%, rgba(0, 0, 0, 0.8), transparent 50%),
+    conic-gradient(from 0deg at 50% 50%, #000000, #002222, #000000);
+  filter: blur(80px);
+  animation: swirl 20s linear infinite;
+  z-index: -1;
+}
+
+@keyframes swirl {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+/* --- Layout --- */
+.app-shell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 2rem;
+  width: 100%;
+  max-width: 1600px;
+  height: 90vh;
+}
+
+/* --- Glass Components --- */
+.glass {
+  background: var(--glass-panel);
+  backdrop-filter: var(--blur-amount);
+  -webkit-backdrop-filter: var(--blur-amount);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: var(--radius-lg);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* --- Sidebar --- */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  gap: 2rem;
+}
+
+.brand {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.nav-item {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .nav-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.nav-item.active {
+  background: var(--accent);
+  color: black; /* Contrast for Cyan */
+  box-shadow: var(--accent-glow);
+}
+
+/* --- Main Workspace --- */
+.workspace {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  padding: 0; /* Content fills the glass card */
+}
+
+/* --- Live Mode (Hero) --- */
+.live-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+}
+
+.transcript-hero {
+  flex: 1;
+  background: transparent;
+  border: none;
+  resize: none;
+  outline: none;
+  padding: 3rem;
+  font-size: 1.5rem;
+  line-height: 1.6;
+  font-weight: 400;
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  text-align: left;
+}
+
+.transcript-hero::placeholder {
+  color: var(--text-muted);
+}
+
+/* --- Dynamic Island (Controls) --- */
+.dynamic-island-container {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+}
+
+.dynamic-island {
+  background: rgba(0, 0, 0, 0.6); /* More transparent */
+  backdrop-filter: blur(30px);
+  border-radius: var(--radius-pill);
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  min-width: 200px;
+  justify-content: center;
+}
+
+[data-theme="light"] .dynamic-island {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.dynamic-island.recording {
+  padding: 0.75rem 1.5rem;
+  min-width: 300px;
+  border-color: rgba(0, 255, 255, 0.3);
+}
+
+/* Mic Button in Island */
+.island-mic {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  color: black;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.island-mic:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px var(--accent);
+}
+
+.island-mic.active {
+  background: var(--danger);
+  color: white;
+  box-shadow: 0 0 20px rgba(255, 69, 58, 0.5);
+}
+
+/* Waveform in Island */
+.island-waveform {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 24px;
+  flex: 1;
+  justify-content: center;
+}
+
+/* --- Style Selector --- */
+.style-selector-container {
+  position: relative;
+}
+
+.style-selector-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-pill);
+  transition: background 0.2s;
+}
+
+.style-selector-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.style-dropdown {
+  position: absolute;
+  bottom: 120%; /* Pop up */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  z-index: 200;
+}
+
+.style-option {
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.style-option:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.style-option.active {
+  background: var(--accent);
+  color: black;
+}
+
+.style-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.2rem;
+}
+
+.style-desc {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+/* --- Common UI Elements --- */
+.btn {
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, 0.2); border-radius: 3px; }

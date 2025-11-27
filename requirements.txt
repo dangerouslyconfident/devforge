@@ -1,0 +1,12 @@
+faster-whisper
+happytransformer
+torch
+gradio
+numpy
+scipy
+pydub
+sentencepiece
+transformers
+fastapi
+uvicorn[standard]
+python-multipart
