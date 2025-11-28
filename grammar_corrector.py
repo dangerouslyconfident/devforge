@@ -14,11 +14,24 @@ class GrammarCorrector:
             return "", 0
             
         start_time = time.time()
-        # Add prefix if the model expects it, though vennify usually just takes the sentence
-        # Some models expect "grammar: " prefix
-        input_text = "grammar: " + text
-        result = self.happy_tt.generate_text(input_text, args=self.args)
-        corrected_text = result.text
+        
+        # Split text into chunks (sentences) to avoid model token limits
+        # Simple split by punctuation for now, can be improved with nltk/spacy if needed
+        import re
+        # Split by . ? ! followed by space or end of string
+        sentences = re.split(r'(?<=[.!?])\s+', text)
+        
+        corrected_sentences = []
+        for sentence in sentences:
+            if not sentence.strip():
+                continue
+                
+            # Add prefix if the model expects it
+            input_text = "grammar: " + sentence
+            result = self.happy_tt.generate_text(input_text, args=self.args)
+            corrected_sentences.append(result.text)
+            
+        corrected_text = " ".join(corrected_sentences)
         
         end_time = time.time()
         latency = (end_time - start_time) * 1000

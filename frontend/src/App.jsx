@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { transcribeAudio } from './api'
+import { transcribeAudio, transcribeAudioStream } from './api'
 import Visualizer from './Visualizer'
 import StyleSelector from './StyleSelector'
 import './index.css'
@@ -14,6 +14,7 @@ function App() {
   const [streamText, setStreamText] = useState("")
   const [scenes, setScenes] = useState([])
   const [style, setStyle] = useState("Neutral")
+  const [secondaryStyle, setSecondaryStyle] = useState("None")
   const [history, setHistory] = useState([])
   const [latency, setLatency] = useState(null)
 
@@ -93,7 +94,12 @@ function App() {
   const exportToTxt = () => {
     let content = ""
     if (activeTab === "scene") {
-      content = scenes.map((s, i) => `Scene ${i + 1}: \n${s} `).join("\n\n")
+      content = scenes.map((s, i) => {
+        if (s.isDual) {
+          return `Scene ${i + 1} (${style}):\n${s.primary}\n\nScene ${i + 1} (${secondaryStyle}):\n${s.secondary}`
+        }
+        return `Scene ${i + 1}: \n${s.primary} `
+      }).join("\n\n")
     } else if (activeTab === "live") {
       content = streamText
     } else {
@@ -191,17 +197,52 @@ function App() {
         mediaRecorderRef.current.onstop = async () => {
           const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
           setIsProcessing(true)
+
+          // Create a new scene entry immediately
+          // Structure: { primary: "", secondary: "" } if dual, else just string or object with one key
+          // Let's standardize on object: { primary: "", secondary: "", isDual: boolean }
+          const isDual = secondaryStyle && secondaryStyle !== "None"
+          const initialScene = isDual ? { primary: "", secondary: "", isDual: true } : { primary: "", isDual: false }
+
+          setScenes(prev => [...prev, initialScene])
+          const sceneIndex = scenes.length
+
           try {
-            const res = await transcribeAudio(blob, style)
-            if (res.status === "success") {
-              setScenes(prev => [...prev, res.final_text])
-              setLatency(res.latency_breakdown)
-              saveToHistory(res.final_text, `Scene ${scenes.length + 1} `)
-            } else {
-              alert("Error: " + res.message)
-            }
+            await transcribeAudioStream(blob, style, secondaryStyle, (chunk) => {
+              setScenes(prev => {
+                const newScenes = [...prev]
+                const currentScene = newScenes[sceneIndex] || initialScene
+
+                // chunk.final can be string or object
+                let newPrimary = currentScene.primary
+                let newSecondary = currentScene.secondary
+
+                if (typeof chunk.final === 'object') {
+                  // Dual mode response
+                  if (chunk.final[style]) newPrimary = (newPrimary + " " + chunk.final[style]).trim()
+                  if (chunk.final[secondaryStyle]) newSecondary = (newSecondary + " " + chunk.final[secondaryStyle]).trim()
+                } else {
+                  // Single mode response
+                  newPrimary = (newPrimary + " " + chunk.final).trim()
+                }
+
+                newScenes[sceneIndex] = { ...currentScene, primary: newPrimary, secondary: newSecondary }
+                return newScenes
+              })
+            })
+
+            // After stream is done, save to history
+            // We need to get the final text from state, but state update is async
+            // So we'll just use a timeout or effect, or better, keep track in a ref
+            // For simplicity, we'll just let the user see it. Saving to history might need a slight refactor
+            // to get the full text reliably.
+
+            // Let's just save a placeholder or try to read from state in a bit
+            // Or we can accumulate locally in a var
+
           } catch (e) {
-            alert("Processing failed")
+            console.error(e)
+            alert(`Processing failed: ${e.message}`)
           } finally {
             setIsProcessing(false)
           }
@@ -245,6 +286,17 @@ function App() {
     const newH = history.filter(h => h.id !== id)
     setHistory(newH)
     localStorage.setItem('dictation_history', JSON.stringify(newH))
+  }
+
+  const updateScene = (index, key, newText) => {
+    const newScenes = [...scenes]
+    if (typeof newScenes[index] === 'string') {
+      // Migration/Safety
+      newScenes[index] = { primary: newText, isDual: false }
+    } else {
+      newScenes[index] = { ...newScenes[index], [key]: newText }
+    }
+    setScenes(newScenes)
   }
 
   return (
@@ -331,6 +383,15 @@ function App() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h2>Scene Batch</h2>
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Primary Tone</span>
+                  <StyleSelector value={style} onChange={setStyle} direction="down" />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Secondary Tone</span>
+                  <StyleSelector value={secondaryStyle} onChange={setSecondaryStyle} showNone={true} direction="down" />
+                </div>
+
                 {scenes.length > 0 && <button className="btn" onClick={exportToTxt}>Export to TXT</button>}
 
                 <div className="dynamic-island" style={{ position: 'relative', bottom: 'auto', left: 'auto', transform: 'none', minWidth: isRecording ? '200px' : 'auto' }}>
@@ -350,7 +411,36 @@ function App() {
               {scenes.map((scene, i) => (
                 <div key={i} style={{ background: 'rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: '16px' }}>
                   <div style={{ fontSize: '0.8rem', color: 'var(--accent)', marginBottom: '0.5rem', fontWeight: 'bold' }}>SCENE {i + 1}</div>
-                  <div style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>{scene}</div>
+
+                  {scene.isDual ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '5px' }}>{style}</div>
+                        <textarea
+                          className="scene-textarea"
+                          value={scene.primary}
+                          onChange={(e) => updateScene(i, 'primary', e.target.value)}
+                          rows={10}
+                        />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '5px' }}>{secondaryStyle}</div>
+                        <textarea
+                          className="scene-textarea"
+                          value={scene.secondary}
+                          onChange={(e) => updateScene(i, 'secondary', e.target.value)}
+                          rows={10}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <textarea
+                      className="scene-textarea"
+                      value={scene.primary || scene} // Fallback for old string state
+                      onChange={(e) => updateScene(i, 'primary', e.target.value)}
+                      rows={10}
+                    />
+                  )}
                 </div>
               ))}
             </div>

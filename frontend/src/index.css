@@ -289,7 +289,8 @@ body::before {
 
 .style-dropdown {
   position: absolute;
-  bottom: 120%; /* Pop up */
+  /* Default UP */
+  bottom: 120%; 
   left: 50%;
   transform: translateX(-50%);
   width: 220px;
@@ -298,6 +299,11 @@ body::before {
   flex-direction: column;
   gap: 0.25rem;
   z-index: 200;
+}
+
+.style-dropdown.down {
+  bottom: auto;
+  top: 120%;
 }
 
 .style-option {
@@ -348,3 +354,22 @@ body::before {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, 0.2); border-radius: 3px; }
+
+/* --- Scene Batch Textarea --- */
+.scene-textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  font-size: 1.1rem;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  min-height: 150px; /* Ensure at least ~6 lines are visible */
+}
+
+.scene-textarea:focus {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-sm);
+}

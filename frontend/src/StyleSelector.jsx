@@ -7,7 +7,7 @@ const styles = [
     { id: 'Concise', label: 'Concise', desc: 'Short and to the point.' }
 ]
 
-const StyleSelector = ({ value, onChange }) => {
+const StyleSelector = ({ value, onChange, showNone = false, direction = "up" }) => {
     const [isOpen, setIsOpen] = useState(false)
     const containerRef = useRef(null)
 
@@ -21,7 +21,11 @@ const StyleSelector = ({ value, onChange }) => {
         return () => document.removeEventListener("mousedown", handleClickOutside)
     }, [])
 
-    const selectedStyle = styles.find(s => s.id === value) || styles[0]
+    const displayStyles = showNone
+        ? [{ id: 'None', label: 'None', desc: 'No secondary style.' }, ...styles]
+        : styles
+
+    const selectedStyle = displayStyles.find(s => s.id === value) || displayStyles[0]
 
     return (
         <div className="style-selector-container" ref={containerRef}>
@@ -31,8 +35,8 @@ const StyleSelector = ({ value, onChange }) => {
             </button>
 
             {isOpen && (
-                <div className="style-dropdown glass">
-                    {styles.map(style => (
+                <div className={`style-dropdown glass ${direction}`}>
+                    {displayStyles.map(style => (
                         <div
                             key={style.id}
                             className={`style-option ${value === style.id ? 'active' : ''}`}

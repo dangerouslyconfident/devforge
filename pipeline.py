@@ -101,5 +101,40 @@ class DictationPipeline:
         
         return final_text
 
+    def process_stream(self, audio_path, style_mode="Neutral"):
+        """
+        Yields processed text segments as they become available.
+        """
+        print("Starting Stream Processing...")
+        
+        # Generator for STT
+        stt_generator = self.stt.transcribe_generator(
+            audio_path,
+            initial_prompt="The following is a transcript of an Indian English speaker.",
+            model_type="batch"
+        )
+        
+        for raw_segment in stt_generator:
+            if not raw_segment.strip():
+                continue
+                
+            # Process each segment individually
+            # Note: Context might be lost between segments for grammar, but it's a trade-off for speed
+            cleaned_segment = self.cleaner.clean(raw_segment)
+            grammar_segment, _ = self.grammar.correct(cleaned_segment)
+            # Apply styles
+            if isinstance(style_mode, list):
+                final_segment = {}
+                for s in style_mode:
+                    if s: # Ignore empty strings/None
+                        final_segment[s] = self.style.apply_style(grammar_segment, s)
+            else:
+                final_segment = self.style.apply_style(grammar_segment, style_mode)
+            
+            yield {
+                "raw": raw_segment,
+                "final": final_segment
+            }
+
 if __name__ == "__main__":
     pass

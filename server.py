@@ -53,6 +53,52 @@ async def transcribe_audio(
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+from fastapi.responses import StreamingResponse
+import json
+
+@app.post("/transcribe_stream")
+async def transcribe_audio_stream(
+    file: UploadFile = File(...),
+    style: str = Form("Neutral"),
+    style2: str = Form(None)
+):
+    styles = [style]
+    if style2 and style2 != "None":
+        styles.append(style2)
+    
+    # If only one style, keep it as string for backward compatibility if needed, 
+    # but pipeline now handles list. Let's pass list if multiple, or just pass the list always if pipeline supports it.
+    # The pipeline modification I made handles list or string. 
+    # To be safe and consistent with the plan, let's pass the list if style2 exists.
+    
+    style_arg = styles if len(styles) > 1 else style
+    file_path = os.path.join(UPLOAD_DIR, f"stream_{file.filename}")
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    async def event_generator():
+        try:
+            # We need to run the blocking generator in a threadpool or just iterate if it's fast enough
+            # Since faster_whisper releases GIL mostly, direct iteration might be okay, but let's be safe
+            # For simplicity in this MVP, we'll iterate directly. 
+            # Ideally, we'd use run_in_executor for the whole process or async generator if supported.
+            
+            for segment in pipeline.process_stream(file_path, style_arg):
+                data = json.dumps(segment)
+                yield f"data: {data}\n\n"
+                
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            print(f"Streaming Error: {e}")
+            import traceback
+            traceback.print_exc()
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        finally:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}

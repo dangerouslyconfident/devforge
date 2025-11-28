@@ -36,6 +36,14 @@ class STTEngine:
             transcribe_options["condition_on_previous_text"] = False
             transcribe_options["repetition_penalty"] = 1.1
             transcribe_options["temperature"] = 0.0
+            transcribe_options["vad_filter"] = True # Skip silence
+        else:
+            # Batch Mode Optimization for Speed/Long Audio
+            transcribe_options["vad_filter"] = True
+            transcribe_options["condition_on_previous_text"] = False # Prevent loops
+            # Reduce beam size if it was default (5) to improve speed, unless specified otherwise
+            if beam_size == 5:
+                transcribe_options["beam_size"] = 2 
         
         segments, info = model.transcribe(
             audio_input, 
@@ -50,6 +58,41 @@ class STTEngine:
         latency = (end_time - start_time) * 1000 # ms
         
         return text.strip(), latency
+
+    def transcribe_generator(self, audio_input, initial_prompt=None, model_type="batch", beam_size=5):
+        """
+        Yields segments as they are transcribed.
+        """
+        model = self.live_model if model_type == "live" else self.batch_model
+        
+        # Check if audio_input is a path (string) and verify existence
+        if isinstance(audio_input, str) and not os.path.exists(audio_input):
+             raise FileNotFoundError(f"Audio file not found: {audio_input}")
+
+        # Tuning parameters
+        transcribe_options = {
+            "beam_size": beam_size,
+            "initial_prompt": initial_prompt
+        }
+        
+        if model_type == "live":
+            transcribe_options["condition_on_previous_text"] = False
+            transcribe_options["repetition_penalty"] = 1.1
+            transcribe_options["temperature"] = 0.0
+            transcribe_options["vad_filter"] = True
+        else:
+            transcribe_options["vad_filter"] = True
+            transcribe_options["condition_on_previous_text"] = False
+            if beam_size == 5:
+                transcribe_options["beam_size"] = 2 
+        
+        segments, info = model.transcribe(
+            audio_input, 
+            **transcribe_options
+        )
+        
+        for segment in segments:
+            yield segment.text
 
 if __name__ == "__main__":
     # Simple test
