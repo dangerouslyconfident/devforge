@@ -1,6 +1,6 @@
 # FluxDictate 🎙️
 
-**FluxDictate** is a high-performance, offline, intelligent speech-to-text engine designed for real-time dictation and batch processing. It features a premium "Apple Liquid Glass" UI, a dedicated low-latency live model, and advanced hallucination filtering.
+**FluxDictate** is a high-performance, offline, intelligent speech-to-text engine designed for real-time dictation and batch processing. 
 
 ![FluxDictate UI](https://via.placeholder.com/800x450.png?text=FluxDictate+UI+Preview)
 
